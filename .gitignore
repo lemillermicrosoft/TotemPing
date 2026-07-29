@@ -1,0 +1,4 @@
+﻿# Generated release artifacts and staging
+dist/
+.tmp/
+
