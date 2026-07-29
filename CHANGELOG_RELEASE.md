@@ -1,10 +1,7 @@
-﻿# v0.2.0
+﻿# v0.3.0
 
-Initial tagged release.
+Changes since v0.2.0.
 
 ## Features
-- initial totem_ping scaffold (4de721e)
-
-## Other
-- add CurseForge config with project ID 1630980 (9cf1e34)
+- MVP buff-based party range check with grace window and notify sinks (#2) (#3) (da288e3)
 
