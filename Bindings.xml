@@ -1,0 +1,8 @@
+<Bindings>
+    <Binding name="TOTEMPING_TOGGLE" header="TOTEMPING" category="TotemPing">
+        TotemPing_Toggle()
+    </Binding>
+    <Binding name="TOTEMPING_SCAN">
+        TotemPing_ForceScan()
+    </Binding>
+</Bindings>
