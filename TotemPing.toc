@@ -6,6 +6,5 @@
 ## IconTexture: Interface\AddOns\TotemPing\Media\icon.png
 ## SavedVariables: TotemPingDB
 
-Bindings.xml
 TotemPing.lua
 
