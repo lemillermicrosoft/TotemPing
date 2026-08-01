@@ -1,7 +1,7 @@
-﻿# v0.3.0
+﻿# v0.3.1
 
-Changes since v0.2.0.
+Changes since v0.3.0.
 
-## Features
-- MVP buff-based party range check with grace window and notify sinks (#2) (#3) (da288e3)
+## Fixes
+- remove unknown PARTY_MEMBERS_CHANGED event (TBC Classic 2.5.6) (#4) (f9f05c8)
 
