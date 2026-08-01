@@ -389,7 +389,6 @@ loader:RegisterEvent("PLAYER_LOGIN")
 loader:RegisterEvent("PLAYER_TOTEM_UPDATE")
 loader:RegisterEvent("PLAYER_ENTERING_WORLD")
 loader:RegisterEvent("GROUP_ROSTER_UPDATE")
-loader:RegisterEvent("PARTY_MEMBERS_CHANGED")
 loader:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         applyDefaults()
@@ -416,7 +415,7 @@ loader:SetScript("OnEvent", function(self, event, arg1)
     elseif event == "PLAYER_ENTERING_WORLD" then
         refreshActiveTotems()
         updateTicker()
-    elseif event == "GROUP_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
+    elseif event == "GROUP_ROSTER_UPDATE" then
         -- Party composition changed; drop stale miss state for anyone who left.
         for unit in pairs(firstMissedAt) do
             if unit ~= "player" and not UnitExists(unit) then
