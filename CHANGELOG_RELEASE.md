@@ -1,7 +1,7 @@
-﻿# v0.3.1
+﻿# v0.4.0
 
-Changes since v0.3.0.
+Changes since v0.3.1.
 
-## Fixes
-- remove unknown PARTY_MEMBERS_CHANGED event (TBC Classic 2.5.6) (#4) (f9f05c8)
+## Features
+- notify when damage totems go out of range (#5) (#6) (0cebfb9)
 
