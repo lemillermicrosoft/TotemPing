@@ -381,6 +381,9 @@ local function applyDefaults()
     end
     if not VALID_MODES[TotemPingDB.mode] then TotemPingDB.mode = DEFAULTS.mode end
     if not VALID_SINKS[TotemPingDB.sink] then TotemPingDB.sink = DEFAULTS.sink end
+    if TotemPing_DamageOOR and TotemPing_DamageOOR.ApplyDefaults then
+        TotemPing_DamageOOR.ApplyDefaults()
+    end
 end
 
 local loader = CreateFrame("Frame")
@@ -483,6 +486,16 @@ SlashCmdList["TOTEMPING"] = function(msg)
     if msg == "debug" then
         TotemPingDB.debug = not TotemPingDB.debug
         say("debug: " .. tostring(TotemPingDB.debug))
+        return
+    end
+
+    local oorRest = msg:match("^oor%s*(.-)$")
+    if oorRest ~= nil then
+        if TotemPing_DamageOOR and TotemPing_DamageOOR.HandleSlash then
+            TotemPing_DamageOOR.HandleSlash(oorRest)
+        else
+            say("damage-totem OOR module not loaded")
+        end
         return
     end
 
