@@ -17,7 +17,7 @@ local PREFIX = "|cff33b3ffTotemPing|r"
 local DEFAULTS = {
     enabled               = true,
     mode                  = "auto",   -- "auto" | "manual"
-    sink                  = "self",   -- "party" | "whisper" | "self" | "off"
+    sink                  = "off",    -- "party" | "whisper" | "self" | "off" (default off -- range icons replace chat)
     graceSeconds          = 4,
     notifyCooldownSeconds = 30,
     scanIntervalSeconds   = 1,
@@ -309,6 +309,29 @@ local function runScan(forceNotify)
     local misses = collectCurrentMisses()
     local mode = (TotemPingDB and TotemPingDB.mode) or DEFAULTS.mode
 
+    -- Feed the range-indicator UI regardless of sink/mode.
+    if TotemPing_RangeIndicator and TotemPing_RangeIndicator.Update then
+        local activeBuffCount = 0
+        for _ in pairs(activeTotems) do activeBuffCount = activeBuffCount + 1 end
+
+        local unitStatus = {}
+        -- Seed all candidate units as OK; misses will flip them.
+        for _, unit in ipairs(iterPartyUnits()) do
+            if unitIsScanCandidate(unit) then
+                unitStatus[unit] = { ok = true, missing = {}, reason = nil }
+            end
+        end
+        for _, m in ipairs(misses) do
+            local s = unitStatus[m.unit]
+            if s then
+                s.ok = false
+                table.insert(s.missing, m.buff)
+                s.reason = s.reason or m.reason
+            end
+        end
+        TotemPing_RangeIndicator.Update(activeBuffCount, unitStatus)
+    end
+
     if forceNotify then
         -- /tp scan or keybind: notify pass ignoring mode + grace.
         local ready = applyGraceAndCooldown(misses, GetTime(), true)
@@ -383,6 +406,9 @@ local function applyDefaults()
     if not VALID_SINKS[TotemPingDB.sink] then TotemPingDB.sink = DEFAULTS.sink end
     if TotemPing_DamageOOR and TotemPing_DamageOOR.ApplyDefaults then
         TotemPing_DamageOOR.ApplyDefaults()
+    end
+    if TotemPing_RangeIndicator and TotemPing_RangeIndicator.ApplyDefaults then
+        TotemPing_RangeIndicator.ApplyDefaults()
     end
 end
 
@@ -461,7 +487,8 @@ local function help()
     say("commands:")
     print("  /tp on | off              - toggle master")
     print("  /tp mode auto|manual")
-    print("  /tp sink party|whisper|self|off")
+    print("  /tp sink party|whisper|self|off  (default: off; range icons replace chat)")
+    print("  /tp frame show|hide|player|label|offset x y|size <px>|reset|status")
     print("  /tp grace <seconds>       - 0 disables grace window")
     print("  /tp cooldown <seconds>    - per-target re-notify cooldown")
     print("  /tp interval <seconds>    - scan tick interval")
@@ -495,6 +522,16 @@ SlashCmdList["TOTEMPING"] = function(msg)
             TotemPing_DamageOOR.HandleSlash(oorRest)
         else
             say("damage-totem OOR module not loaded")
+        end
+        return
+    end
+
+    local frameRest = msg:match("^frame%s*(.-)$")
+    if frameRest ~= nil then
+        if TotemPing_RangeIndicator and TotemPing_RangeIndicator.HandleSlash then
+            TotemPing_RangeIndicator.HandleSlash(frameRest)
+        else
+            say("range-indicator module not loaded")
         end
         return
     end
