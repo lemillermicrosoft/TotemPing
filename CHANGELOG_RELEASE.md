@@ -1,7 +1,7 @@
-﻿# v0.4.0
+﻿# v0.6.0
 
-Changes since v0.3.1.
+Changes since v0.4.0.
 
-## Features
-- notify when damage totems go out of range (#5) (#6) (0cebfb9)
+## Fixes
+- replace chat spam with raidframe-anchored range indicator icons (#7) (#8) (705e02b)
 
