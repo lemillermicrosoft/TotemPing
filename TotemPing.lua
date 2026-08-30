@@ -76,13 +76,23 @@ local function dbg(msg)
     if TotemPingDB and TotemPingDB.debug then say("debug: " .. msg) end
 end
 
+local function stripRankSuffix(name)
+    if not name or name == "" then return name end
+    -- Totem names from GetTotemInfo often include a trailing roman-numeral rank,
+    -- e.g. "Mana Spring Totem IV", "Searing Totem V". Strip it so the map lookup
+    -- and the " Totem" fallback both work.
+    local stripped = name:gsub("%s+[IVXLCDM]+$", "")
+    return stripped
+end
+
 local function buffNameFor(totemName)
     if not totemName or totemName == "" then return nil end
-    if TOTEM_BUFF_MAP[totemName] ~= nil then
-        return TOTEM_BUFF_MAP[totemName] -- may be nil intentionally (no aura totem)
+    local base = stripRankSuffix(totemName)
+    if TOTEM_BUFF_MAP[base] ~= nil then
+        return TOTEM_BUFF_MAP[base] -- may be nil intentionally (no aura totem)
     end
-    -- Unknown totem: strip trailing " Totem" and use as buff name guess.
-    local guess = totemName:gsub("%s+Totem$", "")
+    -- Unknown totem: strip trailing " Totem" from the rank-less name.
+    local guess = base:gsub("%s+Totem$", "")
     return guess
 end
 
@@ -164,19 +174,23 @@ end
 local function unitHasOurBuff(unit, buffName)
     -- Scan HELPFUL auras until we find one whose name matches AND was cast by us.
     --
-    -- On TBC Classic 2.5.6, buffs applied by our own totems frequently return
-    -- source == nil because the caster is the totem unit, which doesn't resolve
-    -- to a stable unit token like "player" or "pet". So we accept:
-    --   source == "player"  (buffs we cast directly, e.g. Bloodlust in some cases)
-    --   source == "pet"     (some builds report totem-cast buffs this way)
-    --   source == nil       (totem-cast buffs with no resolvable caster token)
-    -- The buff-name match already restricts us to known totem-buff names in
-    -- TOTEM_BUFF_MAP, so accepting nil doesn't leak in unrelated auras.
+    -- On TBC Classic 2.5.6, the 7th return of UnitAura (source/caster) can be:
+    --   "player" / "pet"  -- standard unit tokens for buffs we cast directly
+    --   nil               -- caster resolves to a unit with no stable token (some totem builds)
+    --   <player name>     -- most common for totem-cast buffs; the caster is the totem unit,
+    --                        which returns its owner name (i.e. our own character name).
+    -- Buff-name is already restricted to known totem-buff names, so accepting the
+    -- broader source set doesn't leak in unrelated auras.
+    local myName = UnitName and UnitName("player") or nil
     for i = 1, 40 do
         local name, _, _, _, _, _, source = UnitAura(unit, i, "HELPFUL")
         if not name then return false end
         if name == buffName then
-            if source == "player" or source == "pet" or source == nil then
+            local mine = (source == "player")
+                      or (source == "pet")
+                      or (source == nil)
+                      or (myName and source == myName)
+            if mine then
                 if TotemPingDB and TotemPingDB.debug then
                     dbg("match: " .. buffName .. " on " .. unit .. " source=" .. tostring(source))
                 end
