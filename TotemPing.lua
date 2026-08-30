@@ -161,13 +161,27 @@ end
 -------------------------------------------------
 
 local function unitHasOurBuff(unit, buffName)
-    -- Scan HELPFUL auras until we find one whose name matches AND caster == "player".
-    -- UnitAura(unit, name) form matches on name but doesn't disambiguate caster;
-    -- we iterate indices to reliably read the caster field.
+    -- Scan HELPFUL auras until we find one whose name matches AND was cast by us.
+    --
+    -- On TBC Classic 2.5.6, buffs applied by our own totems frequently return
+    -- source == nil because the caster is the totem unit, which doesn't resolve
+    -- to a stable unit token like "player" or "pet". So we accept:
+    --   source == "player"  (buffs we cast directly, e.g. Bloodlust in some cases)
+    --   source == "pet"     (some builds report totem-cast buffs this way)
+    --   source == nil       (totem-cast buffs with no resolvable caster token)
+    -- The buff-name match already restricts us to known totem-buff names in
+    -- TOTEM_BUFF_MAP, so accepting nil doesn't leak in unrelated auras.
     for i = 1, 40 do
         local name, _, _, _, _, _, source = UnitAura(unit, i, "HELPFUL")
         if not name then return false end
-        if name == buffName and source == "player" then return true end
+        if name == buffName then
+            if source == "player" or source == "pet" or source == nil then
+                if TotemPingDB and TotemPingDB.debug then
+                    dbg("match: " .. buffName .. " on " .. unit .. " source=" .. tostring(source))
+                end
+                return true
+            end
+        end
     end
     return false
 end
