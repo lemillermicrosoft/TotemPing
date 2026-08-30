@@ -9,6 +9,7 @@
 TotemPing.lua
 RangeIndicator.lua
 DamageTotemOOR.lua
+Comms.lua
 Options.lua
 
 
