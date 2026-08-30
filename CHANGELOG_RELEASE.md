@@ -1,7 +1,7 @@
-﻿# v0.9.2
+﻿# v0.10.0
 
-Changes since v0.9.1.
+Changes since v0.9.2.
 
-## Fixes
-- better party frame anchor resolution + debug slash (#23) (#24) (4e7f1a9)
+## Features
+- cross-client comms so party members see totem-buff OOR (#25) (#26) (e33965d)
 
