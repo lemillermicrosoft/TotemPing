@@ -48,10 +48,16 @@ local function makeSubtext(parent, text, anchorTo)
     return s
 end
 
+local checkboxCounter = 0
+
 local function makeCheckbox(parent, label, tooltip, getFn, setFn, anchorTo, xOff, yOff)
-    local cb = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
+    checkboxCounter = checkboxCounter + 1
+    local cbName = "TotemPingOptCB" .. checkboxCounter
+    local cb = CreateFrame("CheckButton", cbName, parent, "InterfaceOptionsCheckButtonTemplate")
     cb:SetPoint("TOPLEFT", anchorTo, "BOTTOMLEFT", xOff or 0, yOff or -4)
-    cb.Text:SetText(label)
+    -- TBC Classic template exposes the label as _G[name.."Text"], not cb.Text (Retail).
+    local textRegion = _G[cbName .. "Text"] or cb.Text
+    if textRegion and textRegion.SetText then textRegion:SetText(label) end
     cb.tooltipText = label
     cb.tooltipRequirement = tooltip
     cb:SetScript("OnClick", function(self)
@@ -296,7 +302,10 @@ end
 -------------------------------------------------
 
 function Opt.Open()
-    if not panel then return end
+    if not panel then
+        DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. ": options panel failed to build; check /console scriptErrors 1 for the underlying error.")
+        return
+    end
     -- InterfaceOptionsFrame_OpenToCategory has a known quirk in Classic where
     -- the first call doesn't select the category. Call twice.
     if InterfaceOptionsFrame_OpenToCategory then
@@ -313,14 +322,16 @@ local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
-        -- TotemPing.lua's own ADDON_LOADED handler runs applyDefaults(); order
-        -- of ADDON_LOADED handlers for the same addon is deterministic (registration
-        -- order). This file loads after TotemPing.lua per the TOC, so DB defaults
-        -- are already populated. Still guard for safety.
         TotemPingDB = TotemPingDB or {}
         if InterfaceOptions_AddCategory then
-            buildMainPanel()
-            buildOORPanel()
+            local ok, err = pcall(buildMainPanel)
+            if not ok then
+                DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. ": options main-panel build failed: " .. tostring(err))
+            end
+            local ok2, err2 = pcall(buildOORPanel)
+            if not ok2 then
+                DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. ": options oor-panel build failed: " .. tostring(err2))
+            end
         end
         self:UnregisterEvent("ADDON_LOADED")
     end
