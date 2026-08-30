@@ -55,20 +55,46 @@ local DEFAULTS = {
 
 local UNITS = { "player", "party1", "party2", "party3", "party4" }
 
+local function elvUIActive()
+    return _G["ElvUI"] ~= nil or _G["ElvUF_Player"] ~= nil
+end
+
+local function frameChainVisible(f)
+    while f do
+        if f.IsShown and not f:IsShown() then return false end
+        f = f.GetParent and f:GetParent() or nil
+    end
+    return true
+end
+
 local function findAnchorForUnit(unit)
     -- Prefer ElvUI's party unit buttons if the addon is loaded.
     -- ElvUI names its default party group buttons: ElvUF_PartyGroup1UnitButton1..5
+    -- Some layouts use ElvUF_PartyGroup1UnitButton<N>, others just ElvUF_Party<N>.
     if unit == "player" then
-        if _G["ElvUF_Player"] then return _G["ElvUF_Player"] end
-        if _G["PlayerFrame"]   then return _G["PlayerFrame"] end
+        local candidates = { "ElvUF_Player", "PlayerFrame" }
+        for _, name in ipairs(candidates) do
+            local f = _G[name]
+            if f and frameChainVisible(f) then return f, name end
+        end
         return nil
     end
     local idx = tonumber(unit:match("party(%d+)"))
     if not idx then return nil end
-    local elv = _G["ElvUF_PartyGroup1UnitButton" .. idx]
-    if elv then return elv end
-    local blizz = _G["PartyMemberFrame" .. idx]
-    if blizz then return blizz end
+    local candidates = {
+        "ElvUF_PartyGroup1UnitButton" .. idx,
+        "ElvUF_Party" .. idx,
+        "ElvUF_PartyGroupUnitButton" .. idx,
+    }
+    for _, name in ipairs(candidates) do
+        local f = _G[name]
+        if f and frameChainVisible(f) then return f, name end
+    end
+    -- Blizzard fallback only if ElvUI isn't running (avoids anchoring to hidden default frames).
+    if not elvUIActive() then
+        local blizz = _G["PartyMemberFrame" .. idx]
+        if blizz and frameChainVisible(blizz) then return blizz, "PartyMemberFrame" .. idx end
+    end
     return nil
 end
 
@@ -143,7 +169,8 @@ local function applyAnchor(entry, unit)
         pendingReanchor = true
         return
     end
-    local target = findAnchorForUnit(unit)
+    local target, name = findAnchorForUnit(unit)
+    entry.anchorName = name
     local f = entry.frame
     f:ClearAllPoints()
     if target then
@@ -353,7 +380,31 @@ function RI.HandleSlash(rest)
         return
     end
 
-    say("frame commands: show | hide | player | label | offset x y | size <px> | reset | status")
+    if rest == "debug" then
+        say("anchor debug:")
+        say("  ElvUI detected: " .. tostring(elvUIActive()))
+        for _, unit in ipairs(UNITS) do
+            local target, name = findAnchorForUnit(unit)
+            local entry = icons[unit]
+            local iconShown = entry and entry.frame:IsShown() or false
+            local iconAnchor = entry and entry.anchorName or "none"
+            say(string.format("  %s: resolved=%s (%s) iconShown=%s cachedAnchor=%s",
+                unit,
+                tostring(name or "<none>"),
+                target and (target:IsShown() and "visible" or "hidden") or "<nil>",
+                tostring(iconShown),
+                tostring(iconAnchor)))
+        end
+        return
+    end
+
+    if rest == "rescan" then
+        reanchorAll()
+        say("re-anchored all units")
+        return
+    end
+
+    say("frame commands: show | hide | player | label | offset x y | size <px> | reset | status | debug | rescan")
 end
 
 -------------------------------------------------
@@ -365,15 +416,33 @@ events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("GROUP_ROSTER_UPDATE")
 events:RegisterEvent("PARTY_MEMBERS_CHANGED")
 events:RegisterEvent("PLAYER_REGEN_ENABLED")
+events:RegisterEvent("UNIT_PORTRAIT_UPDATE")
 events:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_REGEN_ENABLED" then
         if pendingReanchor then reanchorAll() end
         return
     end
-    -- Any roster / world-load change: re-resolve anchors.
+    -- Any roster / world-load / portrait change: re-resolve anchors.
     if InCombatLockdown() then
         pendingReanchor = true
         return
     end
     reanchorAll()
 end)
+
+-- Low-frequency re-anchor sweep: if any icon's anchor is nil or invisible,
+-- try to resolve again. Handles ElvUI's lazy frame creation on party join.
+local sweepTicker = C_Timer and C_Timer.NewTicker and C_Timer.NewTicker(2, function()
+    if InCombatLockdown() then return end
+    local db = TotemPingDB and TotemPingDB.frame
+    if not db or not db.enabled then return end
+    for _, unit in ipairs(UNITS) do
+        local entry = icons[unit]
+        if entry then
+            local needs = (not entry.anchoredTo) or (entry.anchoredTo.IsShown and not entry.anchoredTo:IsShown())
+            if needs then
+                applyAnchor(entry, unit)
+            end
+        end
+    end
+end) or nil

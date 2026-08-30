@@ -174,31 +174,44 @@ end
 -- Aura check
 -------------------------------------------------
 
+-- Precompute a set of "strings that look like our own totem's caster".
+-- On TBC Classic 2.5.6 the UnitAura source for a totem-cast buff can be:
+--   "player" / "pet" / nil
+--   the player's name ("Deehotem")
+--   the player's name with realm ("Deehotem-Grobbulus")
+--   the totem's own name ("Mana Spring Totem" / "Mana Spring Totem V")
+-- Accept all of the above.
+local function isOurCaster(source)
+    if source == nil or source == "player" or source == "pet" then return true end
+    if type(source) ~= "string" then return false end
+    local myName = UnitName and UnitName("player") or nil
+    if myName and source == myName then return true end
+    -- Strip realm suffix ("Name-Realm") and compare.
+    if myName then
+        local nameOnly = source:match("^([^%-]+)")
+        if nameOnly == myName then return true end
+    end
+    -- Totem unit-name caster: matches an entry in TOTEM_BUFF_MAP, with or without rank.
+    local stripped = source:gsub("%s+[IVXLCDM]+$", "")
+    if TOTEM_BUFF_MAP[stripped] ~= nil then return true end
+    -- Fallback: any string ending in " Totem" or " Totem <roman>" is one of ours
+    -- (buff-name match already restricts scope to known totem buffs).
+    if source:find("Totem") then return true end
+    return false
+end
+
 local function unitHasOurBuff(unit, buffName)
     -- Scan HELPFUL auras until we find one whose name matches AND was cast by us.
-    --
-    -- On TBC Classic 2.5.6, the 7th return of UnitAura (source/caster) can be:
-    --   "player" / "pet"  -- standard unit tokens for buffs we cast directly
-    --   nil               -- caster resolves to a unit with no stable token (some totem builds)
-    --   <player name>     -- most common for totem-cast buffs; the caster is the totem unit,
-    --                        which returns its owner name (i.e. our own character name).
-    -- Buff-name is already restricted to known totem-buff names, so accepting the
-    -- broader source set doesn't leak in unrelated auras.
-    local myName = UnitName and UnitName("player") or nil
+    -- Buff-name is restricted to known totem-buff names via TOTEM_BUFF_MAP so
+    -- broadening the caster acceptance can't leak in unrelated auras.
     for i = 1, 40 do
         local name, _, _, _, _, _, source = UnitAura(unit, i, "HELPFUL")
         if not name then return false end
-        if name == buffName then
-            local mine = (source == "player")
-                      or (source == "pet")
-                      or (source == nil)
-                      or (myName and source == myName)
-            if mine then
-                if TotemPingDB and TotemPingDB.debug then
-                    dbg("match: " .. buffName .. " on " .. unit .. " source=" .. tostring(source))
-                end
-                return true
+        if name == buffName and isOurCaster(source) then
+            if TotemPingDB and TotemPingDB.debug then
+                dbg("match: " .. buffName .. " on " .. unit .. " source=" .. tostring(source))
             end
+            return true
         end
     end
     return false
