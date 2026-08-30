@@ -18,6 +18,7 @@ local DEFAULTS = {
     enabled               = true,
     mode                  = "auto",   -- "auto" | "manual"
     sink                  = "off",    -- "party" | "whisper" | "self" | "off" (default off -- range icons replace chat)
+    chatQuiet             = false,    -- master mute: silences all chat output (sink + OOR emits + status prints from options changes)
     graceSeconds          = 4,
     notifyCooldownSeconds = 30,
     scanIntervalSeconds   = 1,
@@ -177,6 +178,7 @@ end
 -------------------------------------------------
 
 local function sendToSink(message, whisperTarget)
+    if TotemPingDB and TotemPingDB.chatQuiet then return end
     local sink = (TotemPingDB and TotemPingDB.sink) or "self"
     if sink == "off" then return end
     if sink == "self" then
@@ -462,7 +464,8 @@ end)
 local function statusLines()
     say("enabled: " .. tostring(TotemPingDB.enabled) ..
         " | mode: " .. TotemPingDB.mode ..
-        " | sink: " .. TotemPingDB.sink)
+        " | sink: " .. TotemPingDB.sink ..
+        " | quiet: " .. tostring(TotemPingDB.chatQuiet))
     say("grace: " .. TotemPingDB.graceSeconds .. "s" ..
         " | cooldown: " .. TotemPingDB.notifyCooldownSeconds .. "s" ..
         " | interval: " .. TotemPingDB.scanIntervalSeconds .. "s")
@@ -488,6 +491,8 @@ local function help()
     print("  /tp on | off              - toggle master")
     print("  /tp mode auto|manual")
     print("  /tp sink party|whisper|self|off  (default: off; range icons replace chat)")
+    print("  /tp quiet                 - toggle master chat mute (icons keep working)")
+    print("  /tp config                - open Blizzard interface options panel")
     print("  /tp frame show|hide|player|label|offset x y|size <px>|reset|status")
     print("  /tp grace <seconds>       - 0 disables grace window")
     print("  /tp cooldown <seconds>    - per-target re-notify cooldown")
@@ -509,6 +514,19 @@ SlashCmdList["TOTEMPING"] = function(msg)
     if msg == "on"  then TotemPingDB.enabled = true;  updateTicker(); say("enabled"); return end
     if msg == "off" then TotemPingDB.enabled = false; updateTicker(); say("disabled"); return end
     if msg == "scan" then TotemPing_ForceScan(); return end
+    if msg == "quiet" then
+        TotemPingDB.chatQuiet = not TotemPingDB.chatQuiet
+        say("chatQuiet: " .. tostring(TotemPingDB.chatQuiet))
+        return
+    end
+    if msg == "config" or msg == "options" then
+        if TotemPing_Options and TotemPing_Options.Open then
+            TotemPing_Options.Open()
+        else
+            say("options panel not loaded")
+        end
+        return
+    end
     if msg == "status" then statusLines(); return end
     if msg == "debug" then
         TotemPingDB.debug = not TotemPingDB.debug

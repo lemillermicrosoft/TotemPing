@@ -123,6 +123,7 @@ end
 local function dbg(msg)
     local d = db()
     if d and d.debug then
+        if TotemPingDB and TotemPingDB.chatQuiet then return end
         DEFAULT_CHAT_FRAME:AddMessage(ORANGE_PREFIX .. " debug: " .. msg)
     end
 end
@@ -148,6 +149,7 @@ end
 -------------------------------------------------
 
 local function emit(message)
+    if TotemPingDB and TotemPingDB.chatQuiet then return end
     DEFAULT_CHAT_FRAME:AddMessage(ORANGE_PREFIX .. " " .. message)
 end
 

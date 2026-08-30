@@ -46,6 +46,7 @@ local DEFAULTS = {
     alphaMiss  = 1.0,
     showPlayer = true,
     showLabel  = false,       -- when true, shows small count of missing buffs
+    showUnits  = nil,         -- optional per-unit visibility overrides; nil = show all
 }
 
 -------------------------------------------------
@@ -236,7 +237,8 @@ function RI.Update(activeBuffCount, unitStatus)
     end
 
     for _, unit in ipairs(UNITS) do
-        if unit == "player" and not db.showPlayer then
+        local perUnitHidden = db.showUnits and db.showUnits[unit] == false
+        if (unit == "player" and not db.showPlayer) or perUnitHidden then
             if icons[unit] then icons[unit].frame:Hide() end
         else
             local s = unitStatus and unitStatus[unit]
@@ -264,6 +266,19 @@ function RI.ApplyDefaults()
     for k, v in pairs(DEFAULTS) do
         if TotemPingDB.frame[k] == nil then TotemPingDB.frame[k] = v end
     end
+    TotemPingDB.frame.showUnits = TotemPingDB.frame.showUnits or {
+        player = true, party1 = true, party2 = true, party3 = true, party4 = true,
+    }
+    for _, u in ipairs(UNITS) do
+        if TotemPingDB.frame.showUnits[u] == nil then
+            TotemPingDB.frame.showUnits[u] = true
+        end
+    end
+end
+
+-- Expose refresh so the options panel can re-anchor / re-show after changes.
+function RI.Refresh()
+    reanchorAll()
 end
 
 local function say(msg)
