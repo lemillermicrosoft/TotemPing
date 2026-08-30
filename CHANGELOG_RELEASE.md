@@ -1,7 +1,11 @@
-﻿# v0.6.0
+﻿# v0.8.0
 
-Changes since v0.4.0.
+Changes since v0.6.0.
+
+## Features
+- chat mute toggle + Blizzard Interface Options panel (#9) (#10) (d7ad192)
 
 ## Fixes
-- replace chat spam with raidframe-anchored range indicator icons (#7) (#8) (705e02b)
+- gate damage-totem OOR combat_log check on active combat (#13) (#14) (651b60d)
+- accept nil/pet source on totem-cast buffs (#11) (#12) (399445e)
 
