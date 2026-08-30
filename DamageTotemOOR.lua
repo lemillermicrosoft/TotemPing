@@ -479,6 +479,12 @@ function M.ApplyDefaults()
         if cfg[k] == nil then cfg[k] = v end
     end
     if not VALID_METHODS[cfg.method] then cfg.method = DEFAULTS.method end
+    -- One-time migration: v0.8.x shipped enabled=true and generated a lot of
+    -- solo-play noise. Force-flip to false once, then never again.
+    if not TotemPingDB._oorMigrationV0_9_2 then
+        cfg.enabled = false
+        TotemPingDB._oorMigrationV0_9_2 = true
+    end
 end
 
 function M.UpdateTicker()
