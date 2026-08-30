@@ -35,7 +35,7 @@ local ORANGE_PREFIX = "|cffff9933[TotemPing]|r"
 -------------------------------------------------
 
 local DEFAULTS = {
-    enabled                 = true,
+    enabled                 = false,  -- default off: noisy for solo play; opt in via /tp oor toggle or config panel
     method                  = "combat_log",  -- "combat_log" | "position" | "both"
     combineMessages         = true,
     combineWindow           = 0.75,
