@@ -2,7 +2,7 @@
 ## Title: TotemPing
 ## Notes: Warn when party members are out of range of your shaman totem buffs.
 ## Author: GitHub Copilot c/o deehoc
-## Version: 0.8.0
+## Version: 0.9.0
 ## IconTexture: Interface\AddOns\TotemPing\Media\icon.png
 ## SavedVariables: TotemPingDB
 
@@ -10,6 +10,7 @@ TotemPing.lua
 RangeIndicator.lua
 DamageTotemOOR.lua
 Options.lua
+
 
 
 

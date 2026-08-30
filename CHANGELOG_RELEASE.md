@@ -1,11 +1,11 @@
-﻿# v0.8.0
+﻿# v0.9.0
 
-Changes since v0.6.0.
+Changes since v0.8.0.
 
 ## Features
-- chat mute toggle + Blizzard Interface Options panel (#9) (#10) (d7ad192)
+- default damage-totem OOR to disabled to reduce solo-play noise (#19) (#20) (17ad69e)
 
 ## Fixes
-- gate damage-totem OOR combat_log check on active combat (#13) (#14) (651b60d)
-- accept nil/pet source on totem-cast buffs (#11) (#12) (399445e)
+- options panel checkbox label uses Classic template pattern + pcall guard (#17) (#18) (40957a2)
+- strip rank suffix + accept player-name as caster (#15) (#16) (20a699b)
 
