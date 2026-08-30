@@ -253,6 +253,12 @@ end
 
 local function combatLogSaysOOR(st, now)
     if not st.tick then return false end -- Fire Nova skipped
+    -- Silence only carries OOR information while we're actually in combat.
+    -- Out of combat there's no target for the totem to hit, so "silent" is the
+    -- expected state and does not mean the player walked away.
+    if not UnitAffectingCombat or not UnitAffectingCombat("player") then
+        return false
+    end
     local uptime = now - (st.spawnedAt or now)
     if uptime < MIN_UPTIME_BEFORE_SILENCE_CHECK then return false end
     local d = db()
@@ -413,6 +419,8 @@ frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_TOTEM_UPDATE")
 frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         local _, class = UnitClass("player")
@@ -436,6 +444,24 @@ frame:SetScript("OnEvent", function(self, event, ...)
         updateTicker()
     elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
         onCombatLogEvent(...)
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        -- Entering combat: reset the silence timer for every tracked totem so
+        -- a totem that has been idle for a while doesn't trip instantly on the pull.
+        local now = GetTime()
+        for _, st in pairs(slotState) do
+            st.lastDamageTime = now
+            st.oorFlagged = false
+        end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        -- Leaving combat: clear any active OOR flags; the silence-check is now
+        -- gated on combat state anyway.
+        for _, st in pairs(slotState) do
+            st.oorFlagged = false
+        end
+        -- Flush any pending combined message that would otherwise arrive after combat.
+        pendingOOR = {}
+        pendingSeen = {}
+        pendingFlushAt = 0
     end
 end)
 
