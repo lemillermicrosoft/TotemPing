@@ -37,13 +37,13 @@ local TOTEM_BUFF_MAP = {
     -- Earth
     ["Strength of Earth Totem"] = "Strength of Earth",
     ["Stoneskin Totem"]         = "Stoneskin",
-    ["Earthbind Totem"]         = nil, -- debuff, not a party buff
-    ["Tremor Totem"]            = nil, -- passive fear break, no aura
-    ["Stoneclaw Totem"]         = nil,
+    ["Earthbind Totem"]         = false, -- debuff, not a party buff
+    ["Tremor Totem"]            = false, -- passive fear break, no aura
+    ["Stoneclaw Totem"]         = false,
     -- Fire
-    ["Searing Totem"]           = nil,
-    ["Magma Totem"]             = nil,
-    ["Fire Nova Totem"]         = nil,
+    ["Searing Totem"]           = false,
+    ["Magma Totem"]             = false,
+    ["Fire Nova Totem"]         = false,
     ["Flametongue Totem"]       = "Flametongue Totem",
     ["Frost Resistance Totem"]  = "Frost Resistance",
     ["Totem of Wrath"]          = "Totem of Wrath",
@@ -52,8 +52,8 @@ local TOTEM_BUFF_MAP = {
     ["Mana Spring Totem"]       = "Mana Spring",
     ["Mana Tide Totem"]         = "Mana Tide",
     ["Fire Resistance Totem"]   = "Fire Resistance",
-    ["Poison Cleansing Totem"]  = nil,
-    ["Disease Cleansing Totem"] = nil,
+    ["Poison Cleansing Totem"]  = false,
+    ["Disease Cleansing Totem"] = false,
     -- Air
     ["Grace of Air Totem"]      = "Grace of Air",
     ["Wrath of Air Totem"]      = "Wrath of Air",
@@ -61,7 +61,7 @@ local TOTEM_BUFF_MAP = {
     ["Tranquil Air Totem"]      = "Tranquil Air",
     ["Nature Resistance Totem"] = "Nature Resistance",
     ["Windwall Totem"]          = "Windwall Totem",
-    ["Grounding Totem"]         = nil,
+    ["Grounding Totem"]         = false,
 }
 
 -------------------------------------------------
@@ -88,8 +88,11 @@ end
 local function buffNameFor(totemName)
     if not totemName or totemName == "" then return nil end
     local base = stripRankSuffix(totemName)
-    if TOTEM_BUFF_MAP[base] ~= nil then
-        return TOTEM_BUFF_MAP[base] -- may be nil intentionally (no aura totem)
+    local mapped = TOTEM_BUFF_MAP[base]
+    if mapped ~= nil then
+        -- Known totem. `false` sentinel means "no aura buff to track" (skip).
+        if mapped == false then return nil end
+        return mapped
     end
     -- Unknown totem: strip trailing " Totem" from the rank-less name.
     local guess = base:gsub("%s+Totem$", "")
