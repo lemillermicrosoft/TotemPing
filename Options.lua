@@ -303,7 +303,8 @@ end
 
 function Opt.Open()
     if not panel then
-        DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. ": options panel failed to build; check /console scriptErrors 1 for the underlying error.")
+        local err = (TotemPingDB and TotemPingDB._optionsBuildError) or "unknown (enable /console scriptErrors 1 and /reload for details)"
+        DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. ": options panel failed to build. Last error: " .. tostring(err))
         return
     end
     -- InterfaceOptionsFrame_OpenToCategory has a known quirk in Classic where
@@ -323,13 +324,16 @@ loader:RegisterEvent("ADDON_LOADED")
 loader:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         TotemPingDB = TotemPingDB or {}
+        TotemPingDB._optionsBuildError = nil
         if InterfaceOptions_AddCategory then
             local ok, err = pcall(buildMainPanel)
             if not ok then
+                TotemPingDB._optionsBuildError = tostring(err)
                 DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. ": options main-panel build failed: " .. tostring(err))
             end
             local ok2, err2 = pcall(buildOORPanel)
             if not ok2 then
+                TotemPingDB._optionsBuildError = (TotemPingDB._optionsBuildError and (TotemPingDB._optionsBuildError .. " | ") or "") .. "oor:" .. tostring(err2)
                 DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. ": options oor-panel build failed: " .. tostring(err2))
             end
         end
