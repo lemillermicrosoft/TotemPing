@@ -1,7 +1,7 @@
-﻿# v0.9.1
+﻿# v0.9.2
 
-Changes since v0.9.0.
+Changes since v0.9.1.
 
 ## Fixes
-- use false sentinel for no-buff totems so nil-map-lookup works (#21) (#22) (4db9f09)
+- better party frame anchor resolution + debug slash (#23) (#24) (4e7f1a9)
 
