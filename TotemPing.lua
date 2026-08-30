@@ -141,11 +141,24 @@ local function refreshActiveTotems()
         end
     end
 
+    local prevKeys = {}
+    for k in pairs(activeTotems) do prevKeys[k] = true end
     activeTotems = next_active
+    -- Detect change (added or removed keys) and notify Comms.
+    local changed = false
+    for k in pairs(next_active) do
+        if not prevKeys[k] then changed = true; break end
+        prevKeys[k] = nil
+    end
+    if not changed and next(prevKeys) then changed = true end
+    if changed and _G.TotemPing_Comms and _G.TotemPing_Comms.NotifyActiveBuffs then
+        local list = {}
+        for k in pairs(next_active) do table.insert(list, k) end
+        _G.TotemPing_Comms.NotifyActiveBuffs(list)
+    end
     if TotemPingDB and TotemPingDB.debug then
         local count = 0
-        for _ in pairs(activeTotems) do count = count + 1 end
-        dbg("active totem buffs: " .. count)
+        for _ in pairs(activeTotems) do count = count + 1 end        dbg("active totem buffs: " .. count)
     end
 end
 
@@ -456,6 +469,16 @@ local function applyDefaults()
     if TotemPing_RangeIndicator and TotemPing_RangeIndicator.ApplyDefaults then
         TotemPing_RangeIndicator.ApplyDefaults()
     end
+    if TotemPing_Comms and TotemPing_Comms.ApplyDefaults then
+        TotemPing_Comms.ApplyDefaults()
+    end
+end
+
+-- Expose active buff list for Comms broadcaster.
+function _G.TotemPing_GetActiveBuffList()
+    local list = {}
+    for k in pairs(activeTotems) do table.insert(list, k) end
+    return list
 end
 
 local loader = CreateFrame("Frame")
@@ -475,7 +498,7 @@ loader:SetScript("OnEvent", function(self, event, arg1)
         local _, class = UnitClass("player")
         isShaman = (class == "SHAMAN")
         if not isShaman then
-            say("not a shaman; standing down. (You'll only see this once per session.)")
+            say("not a shaman; local totem tracking disabled. Comms receiver mode is still active if you're in party with a shaman.")
             return
         end
         refreshActiveTotems()
@@ -544,6 +567,7 @@ local function help()
     print("  /tp scan                  - force immediate scan + notify")
     print("  /tp status                - show config + active totems + miss set")
     print("  /tp debug                 - toggle verbose logging")
+    print("  /tp comms status|on|off|debug|hello|receiver")
 end
 
 SLASH_TOTEMPING1 = "/totemping"
@@ -575,6 +599,16 @@ SlashCmdList["TOTEMPING"] = function(msg)
     if msg == "debug" then
         TotemPingDB.debug = not TotemPingDB.debug
         say("debug: " .. tostring(TotemPingDB.debug))
+        return
+    end
+
+    local commsRest = msg:match("^comms%s*(.-)$")
+    if commsRest ~= nil then
+        if TotemPing_Comms and TotemPing_Comms.HandleSlash then
+            TotemPing_Comms.HandleSlash(commsRest)
+        else
+            say("comms module not loaded")
+        end
         return
     end
 
