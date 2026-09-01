@@ -238,6 +238,70 @@ local function showOrHide(unit, shouldShow)
 end
 
 -------------------------------------------------
+-- Receiver-mode state (issue #27)
+--
+-- Non-shaman party members don't drive RI.Update (TotemPing.lua's scan loop
+-- early-returns for non-shamans). Instead, Comms.lua computes which of the
+-- party shaman's broadcast buffs are missing from the local player and pushes
+-- that here. We show the "player" icon anchored to the player frame with the
+-- same ok/miss/idle visual language so hunters/etc. get parity with shamans.
+--
+-- receiverActive is true whenever we have at least one known remote shaman;
+-- when it's true and Update() is NOT driving state (i.e. we're not a shaman),
+-- SetReceiverStatus owns the player icon.
+-------------------------------------------------
+
+local receiverActive = false
+local receiverMissing = {}
+local localUpdateActive = false  -- true once RI.Update has driven state (i.e., we're the local shaman)
+
+local function applyReceiverPlayerIcon()
+    -- If the local shaman scan is driving Update(), let it own the player icon.
+    if localUpdateActive then return end
+    local db = TotemPingDB and TotemPingDB.frame or DEFAULTS
+    if not db.enabled then
+        if icons.player then icons.player.frame:Hide() end
+        return
+    end
+    if not db.showPlayer then
+        if icons.player then icons.player.frame:Hide() end
+        return
+    end
+    local perUnitHidden = db.showUnits and db.showUnits.player == false
+    if perUnitHidden then
+        if icons.player then icons.player.frame:Hide() end
+        return
+    end
+    if not receiverActive then
+        setState("player", "idle")
+        showOrHide("player", false)
+        return
+    end
+    if #receiverMissing == 0 then
+        setState("player", "ok")
+        showOrHide("player", true)
+    else
+        setState("player", "miss", receiverMissing, "out of range")
+        showOrHide("player", true)
+    end
+end
+
+-- Called by Comms.lua receiver scan.
+--   missing == nil  -> no known remote shamans; hide player icon (idle).
+--   missing == {}   -> in range of all remote-shaman buffs; show ok.
+--   missing == {..} -> list of "<buff> (<shaman>)" strings; show miss.
+function RI.SetReceiverStatus(missing)
+    if missing == nil then
+        receiverActive = false
+        receiverMissing = {}
+    else
+        receiverActive = true
+        receiverMissing = missing
+    end
+    applyReceiverPlayerIcon()
+end
+
+-------------------------------------------------
 -- Public: called from TotemPing.lua on each scan
 --
 -- activeBuffCount : number of active player totem buffs (0 = idle mode)
@@ -246,6 +310,7 @@ end
 -------------------------------------------------
 
 function RI.Update(activeBuffCount, unitStatus)
+    localUpdateActive = true
     local db = TotemPingDB and TotemPingDB.frame or DEFAULTS
     if not db.enabled then
         for _, unit in ipairs(UNITS) do
@@ -331,6 +396,10 @@ function RI.HandleSlash(rest)
         db.enabled = true
         say("frame enabled")
         reanchorAll()
+        -- If we're in receiver mode (non-shaman party member), re-drive the
+        -- player icon so /tp frame show actually surfaces something instead of
+        -- waiting for the next Comms tick. See issue #27.
+        applyReceiverPlayerIcon()
         return
     end
     if rest == "hide" or rest == "off" then
@@ -345,6 +414,7 @@ function RI.HandleSlash(rest)
         for k, v in pairs(DEFAULTS) do db[k] = v end
         say("frame settings reset to defaults")
         reanchorAll()
+        applyReceiverPlayerIcon()
         return
     end
     if rest == "player" then
@@ -383,6 +453,8 @@ function RI.HandleSlash(rest)
     if rest == "debug" then
         say("anchor debug:")
         say("  ElvUI detected: " .. tostring(elvUIActive()))
+        say("  receiverActive=" .. tostring(receiverActive) ..
+            " receiverMissing=" .. tostring(#receiverMissing))
         for _, unit in ipairs(UNITS) do
             local target, name = findAnchorForUnit(unit)
             local entry = icons[unit]
