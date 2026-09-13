@@ -57,7 +57,10 @@ local TOTEM_BUFF_MAP = {
     -- Air
     ["Grace of Air Totem"]      = "Grace of Air",
     ["Wrath of Air Totem"]      = "Wrath of Air",
-    ["Windfury Totem"]          = "Windfury Totem",
+    -- Windfury Totem grants a temporary weapon enchant / on-swing proc,
+    -- not a lasting UnitAura buff on party members. Skip aura-scan tracking
+    -- so we don't flag everyone as missing it every tick (see issue #29).
+    ["Windfury Totem"]          = false,
     ["Tranquil Air Totem"]      = "Tranquil Air",
     ["Nature Resistance Totem"] = "Nature Resistance",
     ["Windwall Totem"]          = "Windwall Totem",
