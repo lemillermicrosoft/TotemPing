@@ -1,7 +1,7 @@
-﻿# v0.10.1
+﻿# v0.10.2
 
-Changes since v0.10.0.
+Changes since v0.10.1.
 
 ## Fixes
-- show TotemPing frame for non-shaman party members (#27) (#28) (d437bc8)
+- skip Windfury Totem aura scan (weapon enchant, not buff) (#29) (#30) (7810211)
 
